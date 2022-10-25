@@ -1,0 +1,94 @@
+<script src="https://unpkg.com/vue@3"></script>
+<script src="https://unpkg.com/vue-select@latest"></script>
+<link rel="stylesheet" href="https://unpkg.com/vue-select@latest/dist/vue-select.css">
+
+<html>
+<head>
+	<meta charset="utf-8">
+</head>
+<body>
+
+</body>
+	<div id="app">
+        <button @click="reset_game">Start game</button>
+        <br/>        <br/>
+        <div>Score: {{score}} </div>
+        <div>Mistakes: {{mistakes}}</div>
+        <br/>
+        <div>{{found_letters}}</div> <img v-bind:src="img" v-bind:width="img_width"/>
+        <br/>
+        <div>{{death}}</div>
+        <button v-for="letter in letters" @click="on_button_click">{{letter}}</button>
+	</div>
+</html>
+     <script src="./wordlist.js"></script>
+<script>
+	const { createApp } = Vue
+createApp({
+	data() {
+		return {
+			words : wordlist,
+            letters : Array.from(Array(26)).map((e, i) => String.fromCharCode(i + 65)),
+            time : 0,
+            score : 0,
+            found_letters : "",
+            secret_word : "", 
+            mistakes : 0,
+            img : "",
+            death : "",
+            score_value : 20,
+            winning_value : this.secret_word?.length * 10,
+            time_value : Math.round(1000 / (this.time * this.secret_word?.length)),
+		}
+	},
+	methods: {
+				on_button_click(e) {
+                    this.letters.map((x) => x == e.target.innerText ? this.letters.splice(this.letters.indexOf(x), 1) : null); 
+                    value = e.target.innerText.toLowerCase()
+                    if (this.is_letter_correct(value)) {
+                        this.score = this.score + this.score_value;
+                        this.time = 0;
+                        placeholder = this.secret_word
+                        rounds = [...this.secret_word].filter(s => s === value).length
+                        for (let i = 0; i < rounds; i++) {
+                            index = placeholder.indexOf(value)
+                            this.found_letters = this.found_letters.substring(0, index) + value + this.found_letters.substring(index + 1);
+                            placeholder = placeholder.substring(0, index) + " " + placeholder.substring(index + 1);
+                        }
+
+                    } else {
+                        this.mistakes++; 
+                        this.img = "./img/" + this.mistakes + ".jpg"; 
+                        if(this.mistakes == 10) {
+                            this.death = "You died!"
+                            reset_game(); 
+                            // TODO: finish game, rly 8? 
+                        }
+                    }
+				},
+                start_game() {
+                    this.secret_word = this.words[Math.floor(Math.random() * this.words?.length)];   // Get random value from list
+                    for(let i = 0; i < this.secret_word.length; i++) {
+                        this.found_letters += "_"
+                    }
+                    setInterval(    // Start timer
+                        function() {this.time += 1 }, 1000);
+                    console.log(this.secret_word);
+                    this.img = "./img/" + this.mistakes + ".jpg"; 
+                },
+                is_letter_correct(letter) {
+                    return this.secret_word.includes(letter); 
+                },
+                on_cheat_click() {
+
+                },
+                reset_game() {
+                    // TODO: reset all variable
+                    start_game();
+                }
+			},
+    created: function() {
+        this.start_game()
+    }
+}).mount('#app')
+</script>
