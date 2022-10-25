@@ -10,8 +10,9 @@
 
 </body>
 	<div id="app">
-        <button @click="reset_game">Start game</button>
+        <button @click="reset_game">Restart Game</button>
         <br/>        <br/>
+        <div>Current Highscore: {{highscore}} </div>
         <div>Score: {{score}} </div>
         <div>Mistakes: {{mistakes}}</div>
         <br/>
@@ -19,6 +20,9 @@
         <br/>
         <div>{{death}}</div>
         <button v-for="letter in letters" @click="on_button_click">{{letter}}</button>
+        <br/>
+        <br/>
+        <div><button @click="on_cheat_click"> Show word</button> {{cheat}}</div>
 	</div>
 </html>
      <script src="./wordlist.js"></script>
@@ -29,6 +33,7 @@ createApp({
 		return {
 			words : wordlist,
             letters : Array.from(Array(26)).map((e, i) => String.fromCharCode(i + 65)),
+            highscore: 0, 
             time : 0,
             score : 0,
             found_letters : "",
@@ -36,9 +41,9 @@ createApp({
             mistakes : 0,
             img : "",
             death : "",
+            cheat : "",
             score_value : 20,
-            winning_value : this.secret_word?.length * 10,
-            time_value : Math.round(1000 / (this.time * this.secret_word?.length)),
+            interval : undefined, 
 		}
 	},
 	methods: {
@@ -46,8 +51,9 @@ createApp({
                     this.letters.map((x) => x == e.target.innerText ? this.letters.splice(this.letters.indexOf(x), 1) : null); 
                     value = e.target.innerText.toLowerCase()
                     if (this.is_letter_correct(value)) {
-                        this.score = this.score + this.score_value;
-                        this.time = 0;
+                        console.log(this.time)
+                        this.score += (this.score_value + Math.round(1000 / (this.time * this.secret_word.length)));
+                        this.time = 1;
                         placeholder = this.secret_word
                         rounds = [...this.secret_word].filter(s => s === value).length
                         for (let i = 0; i < rounds; i++) {
@@ -55,7 +61,11 @@ createApp({
                             this.found_letters = this.found_letters.substring(0, index) + value + this.found_letters.substring(index + 1);
                             placeholder = placeholder.substring(0, index) + " " + placeholder.substring(index + 1);
                         }
-
+                        if(this.found_letters === this.secret_word) {
+                            this.death = "You won the game!"
+                            this.score += (this.secret_word?.length * 10)
+                            this.save_to_storage(this.score); 
+                        }
                     } else {
                         this.mistakes++; 
                         this.img = "./img/" + this.mistakes + ".jpg"; 
@@ -71,20 +81,41 @@ createApp({
                     for(let i = 0; i < this.secret_word.length; i++) {
                         this.found_letters += "_"
                     }
-                    setInterval(    // Start timer
-                        function() {this.time += 1 }, 1000);
-                    console.log(this.secret_word);
+                    const self = this // no this in intervals!
+                    this.interval = setInterval(    // Start timer
+                        function() {self.time++}, 1000);
                     this.img = "./img/" + this.mistakes + ".jpg"; 
+                    this.highscore = localStorage.getItem("highscore")
                 },
                 is_letter_correct(letter) {
                     return this.secret_word.includes(letter); 
                 },
                 on_cheat_click() {
-
+                    this.cheat = this.secret_word
+                },
+                save_to_storage(score) {
+                    const storage = "highscore"; 
+                    console.log(localStorage.getItem(storage));
+                    if(localStorage.getItem(storage) < score) {
+                        localStorage.removeItem(storage); 
+                        localStorage.setItem(storage, JSON.stringify(Number(score))); 
+                        console.log(localStorage.getItem(storage))
+                    }
+                    console.log(localStorage.getItem(storage))
                 },
                 reset_game() {
-                    // TODO: reset all variable
-                    start_game();
+                    this.highscore = 0, 
+                    this.letters = Array.from(Array(26)).map((e, i) => String.fromCharCode(i + 65)),
+                    this.time = 0,
+                    this.score = 0,
+                    this.found_letters = "",
+                    this.secret_word = "", 
+                    this.mistakes = 0,
+                    this.img = "",
+                    this.death = "",
+                    this.cheat = "",
+                    clearInterval(this.interval)
+                    this.start_game();
                 }
 			},
     created: function() {
